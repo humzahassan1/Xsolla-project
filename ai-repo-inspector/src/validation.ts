@@ -1,4 +1,5 @@
 import { exec } from "node:child_process";
+import { truncateWithMarker } from "./text.js";
 import type { ValidationResult } from "./types.js";
 
 export const DEFAULT_VALIDATION_TIMEOUT_MS = 120_000;
@@ -6,21 +7,7 @@ export const DEFAULT_MAX_BUFFER_BYTES = 1_048_576;
 export const DEFAULT_OUTPUT_CAP_BYTES = 20_480;
 
 export function truncateOutput(output: string, maxBytes: number): string {
-  if (Buffer.byteLength(output, "utf8") <= maxBytes) {
-    return output;
-  }
-
-  const marker = "\n[output truncated]";
-  const budget = maxBytes - Buffer.byteLength(marker, "utf8");
-  let truncated = "";
-  for (const char of output) {
-    const next = truncated + char;
-    if (Buffer.byteLength(next, "utf8") > budget) {
-      break;
-    }
-    truncated = next;
-  }
-  return truncated + marker;
+  return truncateWithMarker(output, maxBytes, "\n[output truncated]");
 }
 
 export function runValidation(

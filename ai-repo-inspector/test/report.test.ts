@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { markdownReport, renderReport } from "../src/report.js";
+import { markdownReport, renderReport, truncateReport } from "../src/report.js";
 import type { ReviewResult } from "../src/types.js";
 
 const sampleResult: ReviewResult = {
@@ -27,6 +27,14 @@ describe("renderReport", () => {
   it("renders markdown by default", () => {
     const report = renderReport(sampleResult, "markdown");
     expect(report).toContain("# Review Report");
+  });
+
+  it("truncates oversized reports with a marker", () => {
+    const huge = "x".repeat(30_000);
+    const truncated = truncateReport(huge, 100);
+    expect(Buffer.byteLength(truncated, "utf8")).toBeLessThanOrEqual(100);
+    expect(truncated).toContain("[report truncated]");
+    expect(truncateReport("short", 100)).toBe("short");
   });
 
   it("renders JSON and round-trips core fields", () => {

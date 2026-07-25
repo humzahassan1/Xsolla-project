@@ -78,6 +78,24 @@ describe("changedFiles", () => {
   });
 });
 
+describe("resolveBaseRef fallback", () => {
+  it("falls back to master when main does not exist", () => {
+    const repoDir = mkdtempSync(join(tmpdir(), "inspector-master-base-"));
+    try {
+      runGit(repoDir, ["init", "-b", "master"]);
+      runGit(repoDir, ["config", "user.email", "test@example.com"]);
+      runGit(repoDir, ["config", "user.name", "Test User"]);
+      writeFileSync(join(repoDir, "file.txt"), "hello\n", "utf8");
+      runGit(repoDir, ["add", "file.txt"]);
+      runGit(repoDir, ["commit", "-m", "initial"]);
+
+      expect(resolveBaseRef(repoDir)).toBe("master");
+    } finally {
+      rmSync(repoDir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("resolveBaseRef via changedFiles", () => {
   it("falls back to main when base ref is omitted", () => {
     const repoDir = mkdtempSync(join(tmpdir(), "inspector-default-base-"));
