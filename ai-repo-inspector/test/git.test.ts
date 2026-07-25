@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { InspectorError } from "../src/errors.js";
 import { changedFiles, resolveBaseRef } from "../src/git.js";
 
 function runGit(cwd: string, args: string[]): string {
@@ -63,6 +64,17 @@ describe("changedFiles", () => {
 
   it("throws when the base ref does not exist", () => {
     expect(() => resolveBaseRef(repoDir, "does-not-exist")).toThrow(/Unknown base ref/);
+  });
+
+  it("throws when the base ref shares no merge base with HEAD", () => {
+    runGit(repoDir, ["checkout", "--orphan", "other"]);
+    writeFileSync(join(repoDir, "orphan.txt"), "orphan\n", "utf8");
+    runGit(repoDir, ["add", "orphan.txt"]);
+    runGit(repoDir, ["commit", "-m", "orphan root"]);
+    runGit(repoDir, ["checkout", "feature"]);
+
+    expect(() => changedFiles(repoDir, "other")).toThrow(InspectorError);
+    expect(() => changedFiles(repoDir, "other")).toThrow(/no merge base/i);
   });
 });
 

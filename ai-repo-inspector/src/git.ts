@@ -10,6 +10,50 @@ function git(repositoryPath: string, args: string[]): string {
   }).trim();
 }
 
+function gitStderrFirstLine(error: unknown): string {
+  if (error && typeof error === "object" && "stderr" in error && typeof error.stderr === "string") {
+    const line = error.stderr.trim().split("\n").find(Boolean);
+    if (line) {
+      return line;
+    }
+  }
+  if (error instanceof Error) {
+    const fatal = error.message.match(/fatal: [^\n]+/);
+    if (fatal) {
+      return fatal[0];
+    }
+    return error.message;
+  }
+  return "Git command failed";
+}
+
+function tryGit(repositoryPath: string, args: string[]): { ok: true; output: string } | { ok: false } {
+  try {
+    return { ok: true, output: git(repositoryPath, args) };
+  } catch {
+    return { ok: false };
+  }
+}
+
+function runGitDiff(repositoryPath: string, baseRef: string): string {
+  try {
+    return git(repositoryPath, ["diff", "--name-status", `${baseRef}...HEAD`]);
+  } catch (error) {
+    const mergeBaseCheck = tryGit(repositoryPath, ["merge-base", baseRef, "HEAD"]);
+    if (!mergeBaseCheck.ok) {
+      throw new InspectorError(
+        "unknown-ref",
+        `No merge base between "${baseRef}" and HEAD in ${repositoryPath}. Pass --base-ref explicitly; shallow clones may need "git fetch --unshallow".`,
+      );
+    }
+
+    throw new InspectorError(
+      "unknown-ref",
+      `${gitStderrFirstLine(error)} in ${repositoryPath}`,
+    );
+  }
+}
+
 function assertGitRepository(repositoryPath: string): void {
   try {
     const insideWorkTree = git(repositoryPath, ["rev-parse", "--is-inside-work-tree"]);
@@ -90,7 +134,7 @@ function parseNameStatusLine(line: string): ChangedFile | null {
 }
 
 function trackedChanges(repositoryPath: string, baseRef: string): ChangedFile[] {
-  const output = git(repositoryPath, ["diff", "--name-status", `${baseRef}...HEAD`]);
+  const output = runGitDiff(repositoryPath, baseRef);
   if (!output) {
     return [];
   }
