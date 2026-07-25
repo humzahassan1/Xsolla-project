@@ -42,12 +42,16 @@ export function runValidation(
       { cwd, timeout: timeoutMs, maxBuffer: maxBufferBytes },
       (error, stdout, stderr) => {
         const combined = [stdout, stderr].filter(Boolean).join("\n").trimEnd();
-        const exitCode = error && typeof error.code === "number" ? error.code : 0;
+        const timedOut = Boolean(error && "killed" in error && error.killed);
+        const exitCode =
+          error && typeof error.code === "number" ? error.code : timedOut ? -1 : 0;
         const failed = Boolean(error);
         const output = truncateOutput(
-          failed
-            ? combined || error?.message || `Command failed with exit code ${exitCode}`
-            : combined,
+          timedOut
+            ? `Command timed out after ${timeoutMs}ms`
+            : failed
+              ? combined || error?.message || `Command failed with exit code ${exitCode}`
+              : combined,
           outputCapBytes,
         );
 

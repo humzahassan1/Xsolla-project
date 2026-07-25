@@ -20,6 +20,15 @@ describe("runValidation", () => {
     expect(result.exitCode).toBe(3);
   });
 
+  it("reports a timed-out command as failed with a clear message", async () => {
+    const result = await runValidation('node -e "setTimeout(() => {}, 5000)"', cwd, {
+      timeoutMs: 200,
+    });
+    expect(result.status).toBe("failed");
+    expect(result.exitCode).toBe(-1);
+    expect(result.output).toContain("timed out after 200ms");
+  });
+
   it("truncates oversized output", () => {
     const huge = "x".repeat(30_000);
     const truncated = truncateOutput(huge, 100);

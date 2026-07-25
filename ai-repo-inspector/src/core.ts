@@ -4,6 +4,7 @@ import type { ReviewRequest, ReviewResult } from "./types.js";
 import { runValidations } from "./validation.js";
 
 export async function reviewRepository(request: ReviewRequest): Promise<ReviewResult> {
+  assertReviewRequest(request);
   const baseRef = resolveBaseRef(request.repositoryPath, request.baseRef);
   const files = changedFiles(request.repositoryPath, baseRef);
   const validations = await runValidations(
@@ -22,7 +23,7 @@ export async function reviewRepository(request: ReviewRequest): Promise<ReviewRe
 }
 
 export function assertReviewRequest(request: ReviewRequest): void {
-  if (!request.repositoryPath) {
+  if (!request.repositoryPath?.trim()) {
     throw new InspectorError("usage", "Repository path is required.");
   }
 }
