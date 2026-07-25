@@ -1,0 +1,6 @@
+node_modules/
+dist/
+review-report.md
+review-report.json
+scratchpad/
+*.log
